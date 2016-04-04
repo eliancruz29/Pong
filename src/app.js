@@ -5,8 +5,10 @@ var HelloWorldLayer = cc.Layer.extend({
     pelota:null,    
     puntuacion1:null,
     puntuacion2:null,
+    sizeW:null,
     inicializar:function(){
         var size = cc.winSize;
+        this.sizeW = size;
         var color = cc.color(100,100,100);
 
         this.jugador1 =  new cc.DrawNode();
@@ -35,13 +37,48 @@ var HelloWorldLayer = cc.Layer.extend({
         this.puntuacion2 = new cc.LabelTTF("0","Arial",24);
         this.puntuacion2.setPosition(size.width - (size.width * 0.4), size.height - (size.height * 0.10));
         this.addChild(this.puntuacion2,0);
-        
     },
+    
+    random: function(min, max){
+        return Math.floor(Math.random() * (max - min + 1)) + min;
+    },
+    
+    movePelota: function(direction){
+        
+        var action;
+        if(isNaN(direction)){
+            if(direction.toLowerCase() == "left"){
+                var height = 0;
+                if(this.random(0, 1))
+                    height = this.sizeW.height;
+                action = cc.moveTo(5, cc.p(0, height));
+            }else{
+                var height = 0;
+                if(this.random(0, 1))
+                    height = this.sizeW.height;
+                action = cc.moveTo(5, cc.p(this.sizeW.width, height));
+            }
+        }else{
+            var height = 0, width = 0;
+            if(this.random(0, 1))
+                height = this.sizeW.height;
+            if(this.random(0, 1))
+                width = this.sizeW.width;
+            action = cc.moveTo(5, cc.p(width, height));
+        }
+        this.pelota.runAction(action);
+    },
+    
+    verifyCollisionPelota: function(){
+        console.log("Tamo aki");
+    },
+    
     ctor:function () {
         this._super();
         this.inicializar();
-
-
+        
+        this.scheduleOnce(this.movePelota, 1);
+        
         return true;
     }
 });
