@@ -1,5 +1,5 @@
 var padding = 20;
-var velocity = 600;
+var velocity = 1000;
 
 var HelloWorldLayer = cc.Layer.extend({
     jugador1:null,    
@@ -10,6 +10,7 @@ var HelloWorldLayer = cc.Layer.extend({
     directionX: 1,
     directionY: 1,
     speedBall: 1,
+    speedBallLimit: 3.0,
     moveX: null,
     moveY: null,
     sizeW:null,
@@ -45,8 +46,7 @@ var HelloWorldLayer = cc.Layer.extend({
         
         this.pelota =  new cc.DrawNode();
         this.pelota.drawCircle(cc.p(0,0),5,0,100,false,10,color);
-        this.pelota.width = 20;
-        this.pelota.height = 100;
+        this.pelota.width = this.pelota.height =  10;        
         this.pelota.setPosition(size.width / 2,size.height / 2);
         this.addChild(this.pelota, 1);
 
@@ -58,8 +58,8 @@ var HelloWorldLayer = cc.Layer.extend({
         this.puntuacion2.setPosition(size.width - (size.width * 0.4), size.height - (size.height * 0.10));
         this.addChild(this.puntuacion2,0);
         
-        this.moveX = this.random(1, 5);
-        this.moveY = this.random(1, 5);
+        this.moveX = this.random(1, 4);
+        this.moveY = this.random(1, 4);
         if(this.random(0, 1))
             this.directionX = -1;
         if(this.random(0, 1))
@@ -71,28 +71,20 @@ var HelloWorldLayer = cc.Layer.extend({
     },
     
     movePelota: function(){
-        var action = cc.moveBy(0, cc.p((this.moveX*this.directionX*this.speedBall), (this.moveY*this.directionY*this.speedBall)));
+        var action = cc.moveBy(0.05, cc.p((this.moveX*this.directionX*this.speedBall), (this.moveY*this.directionY*this.speedBall)));
         this.pelota.runAction(action);
-        this.verifyCollisionPelota();
     },
     
     rectContainsRect: function(rect1, rect2){
         if(!rect1 || !rect2)
             return false;
         if(
-            ((rect1.y+rect1.height/2)>=(rect2.y-rect2.height))&&
-            (rect1.y-rect1.height/2)<=(rect2.y+rect2.height)&&
-            ((rect1.x-rect1.width/2)>=(rect2.x+rect2.width))
+            ((rect1.y)<=(rect2.y-rect2.height))&&
+            ((rect1.y+rect1.height)>=(rect2.y+rect2.height))
         )
             return true;
-        else if(
-            ((rect1.y+rect1.height/2)>=(rect2.y-rect2.height))&&
-            (rect1.y-rect1.height/2)<=(rect2.y+rect2.height)&&
-            ((rect1.x+rect1.width/2)<=(rect2.x+rect2.width))
-        )
-            return true;
-        else
-            return false;
+            
+        return false;
     },
     
     verifyCollisionPelota: function(){
@@ -106,11 +98,36 @@ var HelloWorldLayer = cc.Layer.extend({
         var pelotaBox = this.pelota.getBoundingBox();
         var jugador1Box = this.jugador1.getBoundingBox();
         var jugador2Box = this.jugador2.getBoundingBox();
-        
-        if(this.rectContainsRect(jugador1Box, pelotaBox)){
-            this.directionX = 1;
-        }else if(this.rectContainsRect(jugador2Box, pelotaBox)){
+        var accurance = this.speedBall*this.speedBallLimit;
+          
+        /*if(cc.rectContainsRect(jugador2Box, pelotaBox)){
             this.directionX = -1;
+            if(this.speedBall < this.speedBallLimit){
+                this.speedBall += 0.05;
+            }
+        }else if(cc.rectContainsRect(jugador1Box, pelotaBox)){
+            this.directionX = 1;
+            if(this.speedBall < this.speedBallLimit){
+                this.speedBall += 0.05;
+            }
+        }*/
+        
+        if((position.x+this.pelota.width) >= (this.jugador2.getPositionX()-(accurance))&&
+          (position.x+this.pelota.width) < this.jugador2.getPositionX()){
+            if(this.rectContainsRect(jugador2Box, pelotaBox)){
+                this.directionX = -1;
+                if(this.speedBall < this.speedBallLimit){
+                    this.speedBall += 0.05;
+                }
+            }
+        }else if((position.x-this.pelota.width) <= ((this.jugador1.getPositionX()+this.jugador1.width)+accurance)&&
+                 (position.x-this.pelota.width) > (this.jugador1.getPositionX()+this.jugador1.width)){
+            if(this.rectContainsRect(jugador1Box, pelotaBox)){
+                this.directionX = 1;
+                if(this.speedBall < this.speedBallLimit){
+                    this.speedBall += 0.05;
+                }
+            }
         }
         
         if(position.x >= this.cuadro.right-10){
@@ -186,6 +203,7 @@ var HelloWorldLayer = cc.Layer.extend({
         this.inicializar();
         
         this.schedule(this.movePelota, null, null, 1);
+        this.schedule(this.verifyCollisionPelota, null, null, 1);
         
         //add a keyboard event listener to statusLabel
         cc.eventManager.addListener({
