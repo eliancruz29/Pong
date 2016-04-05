@@ -1,5 +1,4 @@
 var padding = 20;
-var paddingInit = 200;
 var velocity = 600;
 
 var HelloWorldLayer = cc.Layer.extend({
@@ -8,6 +7,11 @@ var HelloWorldLayer = cc.Layer.extend({
     pelota:null,    
     puntuacion1:null,
     puntuacion2:null,
+    directionX: 1,
+    directionY: 1,
+    speedBall: 1,
+    moveX: null,
+    moveY: null,
     sizeW:null,
     cuadro: null,
     inicializar:function(){
@@ -23,11 +27,15 @@ var HelloWorldLayer = cc.Layer.extend({
 
         this.jugador1 =  new cc.DrawNode();
         this.jugador1.drawRect(cc.p(0,0),cc.p(20,100),color,3);
+        this.jugador1.width = 20;
+        this.jugador1.height = 100;
         this.jugador1.setPosition(size.width * 0.1,size.height / 2);
         this.addChild(this.jugador1, 1);
 
         this.jugador2 =  new cc.DrawNode();
         this.jugador2.drawRect(cc.p(0,0),cc.p(20,100),color,3);
+        this.jugador2.width = 20;
+        this.jugador2.height = 100;
         this.jugador2.setPosition(size.width -(size.width * 0.1),size.height / 2);
         this.addChild(this.jugador2, 1);        
 
@@ -37,6 +45,8 @@ var HelloWorldLayer = cc.Layer.extend({
         
         this.pelota =  new cc.DrawNode();
         this.pelota.drawCircle(cc.p(0,0),5,0,100,false,10,color);
+        this.pelota.width = 20;
+        this.pelota.height = 100;
         this.pelota.setPosition(size.width / 2,size.height / 2);
         this.addChild(this.pelota, 1);
 
@@ -47,40 +57,67 @@ var HelloWorldLayer = cc.Layer.extend({
         this.puntuacion2 = new cc.LabelTTF("0","Arial",24);
         this.puntuacion2.setPosition(size.width - (size.width * 0.4), size.height - (size.height * 0.10));
         this.addChild(this.puntuacion2,0);
+        
+        this.moveX = this.random(1, 5);
+        this.moveY = this.random(1, 5);
+        if(this.random(0, 1))
+            this.directionX = -1;
+        if(this.random(0, 1))
+            this.directionY = -1;
     },
     
     random: function(min, max){
         return Math.floor(Math.random() * (max - min + 1)) + min;
     },
     
-    movePelota: function(direction){
-        
-        var action;
-        if(isNaN(direction)){
-            if(direction.toLowerCase() == "left"){
-                var height = 0;
-                if(this.random(0, 1))
-                    height = this.cuadro.top;
-                action = cc.moveTo(5, cc.p(0, height));
-            }else{
-                var height = 0;
-                if(this.random(0, 1))
-                    height = this.cuadro.top;
-                action = cc.moveTo(5, cc.p(this.cuadro.right, height));
-            }
-        }else{
-            var height = 0, width = 0;
-            if(this.random(0, 1))
-                height = this.cuadro.top;
-            if(this.random(0, 1))
-                width = this.cuadro.right;
-            action = cc.moveTo(5, cc.p(width, height));
-        }
+    movePelota: function(){
+        var action = cc.moveBy(0, cc.p((this.moveX*this.directionX*this.speedBall), (this.moveY*this.directionY*this.speedBall)));
         this.pelota.runAction(action);
+        this.verifyCollisionPelota();
+    },
+    
+    rectContainsRect: function(rect1, rect2){
+        if(!rect1 || !rect2)
+            return false;
+        if(
+            ((rect1.y+rect1.height/2)>=(rect2.y-rect2.height))&&
+            (rect1.y-rect1.height/2)<=(rect2.y+rect2.height)&&
+            ((rect1.x-rect1.width/2)>=(rect2.x+rect2.width))
+        )
+            return true;
+        else if(
+            ((rect1.y+rect1.height/2)>=(rect2.y-rect2.height))&&
+            (rect1.y-rect1.height/2)<=(rect2.y+rect2.height)&&
+            ((rect1.x+rect1.width/2)<=(rect2.x+rect2.width))
+        )
+            return true;
+        else
+            return false;
     },
     
     verifyCollisionPelota: function(){
-        console.log("Tamo aki");
+        var position = this.pelota.getPosition();
+        if(position.y >= this.cuadro.top-10){
+            this.directionY = -1;
+        }else if(position.y <= 10){
+            this.directionY = 1;
+        }
+        
+        var pelotaBox = this.pelota.getBoundingBox();
+        var jugador1Box = this.jugador1.getBoundingBox();
+        var jugador2Box = this.jugador2.getBoundingBox();
+        
+        if(this.rectContainsRect(jugador1Box, pelotaBox)){
+            this.directionX = 1;
+        }else if(this.rectContainsRect(jugador2Box, pelotaBox)){
+            this.directionX = -1;
+        }
+        
+        if(position.x >= this.cuadro.right-10){
+            this.directionX = -1;
+        }else if(position.x <= 10){
+            this.directionX = 1;
+        }
     },
         
     calculeVelocity: function(distance){
@@ -93,7 +130,7 @@ var HelloWorldLayer = cc.Layer.extend({
         var top = juego.cuadro.top;
         var bottom = juego.cuadro.bottom;
         switch (keyCode){
-        case 38:
+        case 65:
                 var distance = top - juego.jugador1.getPositionY() - 100;
                 if(!juego.jugador1.getActionByTag(101)){
                     var action = cc.moveTo(juego.calculeVelocity(distance), cc.p(juego.jugador1.getPositionX(), (top-100)));
@@ -101,7 +138,7 @@ var HelloWorldLayer = cc.Layer.extend({
                     juego.jugador1.runAction(action);
                 }
             break;
-        case 40:
+        case 90:
                 var distance = juego.jugador1.getPositionY() - bottom + 100;
                 if(!juego.jugador1.getActionByTag(101)){
                     var action = cc.moveTo(juego.calculeVelocity(distance), cc.p(juego.jugador1.getPositionX(), 0));
@@ -109,7 +146,7 @@ var HelloWorldLayer = cc.Layer.extend({
                     juego.jugador1.runAction(action);
                 }
             break;
-        case 65:
+        case 38:
                 var distance = top - juego.jugador2.getPositionY() - 100;
                 if(!juego.jugador2.getActionByTag(102)){
                     var action = cc.moveTo(juego.calculeVelocity(distance), cc.p(juego.jugador2.getPositionX(), (top-100)));
@@ -117,7 +154,7 @@ var HelloWorldLayer = cc.Layer.extend({
                     juego.jugador2.runAction(action);
                 }
             break;
-        case 90:
+        case 40:
                 var distance = juego.jugador2.getPositionY() - bottom + 100;
                 if(!juego.jugador2.getActionByTag(102)){
                     var action = cc.moveTo(juego.calculeVelocity(distance), cc.p(juego.jugador2.getPositionX(), 0));
@@ -131,15 +168,15 @@ var HelloWorldLayer = cc.Layer.extend({
     stopLimites: function(keyCode, event){
         var juego = event.getCurrentTarget();
         switch (keyCode){
-        case 38:
-        case 40:
-                var jugador = juego.jugador1;
-                jugador.stopActionByTag(101);
-            break;
         case 65:
         case 90:
+                var jugador = juego.jugador1;
+                jugador.stopAllActions();
+            break;
+        case 38:
+        case 40:
                 var jugador = juego.jugador2;
-                jugador.stopActionByTag(102);
+                jugador.stopAllActions();
             break;
         }
     },
@@ -148,8 +185,7 @@ var HelloWorldLayer = cc.Layer.extend({
         this._super();
         this.inicializar();
         
-        this.scheduleOnce(this.movePelota, 1);
-        //this.schedule(this.verifyCollisionPelota, null, null, 1);
+        this.schedule(this.movePelota, null, null, 1);
         
         //add a keyboard event listener to statusLabel
         cc.eventManager.addListener({
@@ -169,4 +205,3 @@ var HelloWorldScene = cc.Scene.extend({
         this.addChild(layer);
     }
 });
-
